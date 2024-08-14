@@ -3,7 +3,7 @@ import time
 import os
 
 # Fetch environment variables
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+GITHUB_TOKEN = os.getenv('TOKEN')
 REPO_OWNER = os.getenv('REPO_OWNER')
 REPO_NAME = os.getenv('REPO_NAME')
 WORKFLOW_ID = os.getenv('WORKFLOW_ID')
