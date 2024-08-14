@@ -18,14 +18,14 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.x'  # Specify your Python version
+        python-version: '3.10'  # Specify your Python version
 
     - name: Install dependencies
       run: pip install -r requirements.txt
 
     - name: Run workflow trigger script
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TOKEN: ${{ secrets.TOKEN }}
         REPO_OWNER: ${{ secrets.REPO_OWNER }}
         REPO_NAME: ${{ secrets.REPO_NAME }}
         WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
