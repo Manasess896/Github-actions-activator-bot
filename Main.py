@@ -1,7 +1,7 @@
 import requests
 import time
 import os
-
+import sys
 # Fetch environment variables
 GITHUB_TOKEN = os.getenv('TOKEN')
 REPO_OWNER = os.getenv('REPO_OWNER')
@@ -74,3 +74,10 @@ if __name__ == "__main__":
         
         print("Going to sleep for 6 hours...")
         time.sleep(6 * 60 * 60)  # Sleep for 6 hours
+        # Check if the workflow was triggered successfully
+if workflow_triggered:
+    print("Workflow triggered successfully!")
+    sys.exit(0)  # Exit with code 0 for success
+else:
+    print("Failed to trigger workflow.")
+    sys.exit(1)  # Exit with code 1 for failure
