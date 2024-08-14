@@ -1,10 +1,6 @@
 import requests
 import time
 import os
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Fetch environment variables
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
