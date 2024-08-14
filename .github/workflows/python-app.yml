@@ -31,3 +31,10 @@ jobs:
         WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
       run: |
         python Main.py
+      continue-on-error: true  # Continue the job even if the script fails
+
+    - name: Check if workflow was triggered
+      if: success() && steps.trigger-workflow-check.outputs.status == 'success'
+      run: |
+        echo "Workflow was triggered successfully. Stopping the job."
+        exit 0  # Exit with code 0 to stop the workflow
