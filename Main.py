@@ -28,32 +28,49 @@ data = {
 }
 
 def is_workflow_running():
-    response = requests.get(workflow_url, headers=headers)
-    if response.status_code == 200:
-        runs = response.json()["workflow_runs"]
+    try:
+        response = requests.get(workflow_url, headers=headers)
+        response.raise_for_status()  # Raise an error for bad status codes
+        runs = response.json().get("workflow_runs", [])
         for run in runs:
-            if run["status"] == "in_progress" or run["status"] == "queued":
+            if run["status"] in ["in_progress", "queued"]:
+                print(f"Workflow run detected: {run['id']} with status: {run['status']}")
                 return True
-    return False
+        return False
+    except requests.exceptions.RequestException as e:
+        print(f"Error checking workflow status: {e}")
+        return False
 
 def trigger_workflow():
-    response = requests.post(trigger_url, json=data, headers=headers)
-    if response.status_code == 204:
-        print("Workflow triggered successfully!")
-    else:
-        print(f"Failed to trigger workflow: {response.status_code}")
-        print(response.json())
+    try:
+        response = requests.post(trigger_url, json=data, headers=headers)
+        response.raise_for_status()  # Raise an error for bad status codes
+        if response.status_code == 204:
+            print("Workflow triggered successfully!")
+        else:
+            print(f"Unexpected status code: {response.status_code}")
+            print(response.json())
+    except requests.exceptions.RequestException as e:
+        print(f"Error triggering workflow: {e}")
 
 if __name__ == "__main__":
     while True:
         start_time = time.time()
+        workflow_triggered = False
+        
         while time.time() - start_time < 5 * 60:  # Run for 5 minutes
             if not is_workflow_running():
-                print("Workflow is not running. Triggering workflow...")
+                print("Workflow is not running. Attempting to trigger...")
                 trigger_workflow()
+                workflow_triggered = True
+                time.sleep(30)  # Wait before checking again
             else:
                 print("Workflow is already running.")
-            time.sleep(30)  # Check every 30 seconds
+                workflow_triggered = True
+                time.sleep(30)  # Wait before checking again
 
+        if not workflow_triggered:
+            print("No action was taken during this cycle.")
+        
         print("Going to sleep for 6 hours...")
         time.sleep(6 * 60 * 60)  # Sleep for 6 hours
