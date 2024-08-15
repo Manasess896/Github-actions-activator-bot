@@ -1,7 +1,9 @@
 import requests
 import time
 import os
+import signal
 import sys
+
 # Fetch environment variables
 GITHUB_TOKEN = os.getenv('TOKEN')
 REPO_OWNER = os.getenv('REPO_OWNER')
@@ -26,6 +28,15 @@ headers = {
 data = {
     "ref": "main"  # The branch where the workflow should be triggered
 }
+
+# Function to handle the timeout
+def timeout_handler(signum, frame):
+    print("Operation timed out")
+    sys.exit(1)  # Exit with error code 1
+
+# Set the signal handler and a timeout of 5 minutes (300 seconds)
+signal.signal(signal.SIGALRM, timeout_handler)
+signal.alarm(300)  # Timeout after 300 seconds
 
 def is_workflow_running():
     try:
@@ -54,30 +65,30 @@ def trigger_workflow():
         print(f"Error triggering workflow: {e}")
 
 if __name__ == "__main__":
-    while True:
-        start_time = time.time()
-        workflow_triggered = False
-        
-        while time.time() - start_time < 5 * 60:  # Run for 5 minutes
-            if not is_workflow_running():
-                print("Workflow is not running. Attempting to trigger...")
-                trigger_workflow()
-                workflow_triggered = True
-                time.sleep(30)  # Wait before checking again
-            else:
-                print("Workflow is already running.")
-                workflow_triggered = True
-                time.sleep(30)  # Wait before checking again
+    workflow_triggered = False
+    start_time = time.time()
 
-        if not workflow_triggered:
-            print("No action was taken during this cycle.")
-        
-        print("Going to sleep for 6 hours...")
-        time.sleep(6 * 60 * 60)  # Sleep for 6 hours
-        # Check if the workflow was triggered successfully
-if workflow_triggered:
-    print("Workflow triggered successfully!")
-    sys.exit(0)  # Exit with code 0 for success
-else:
-    print("Failed to trigger workflow.")
-    sys.exit(1)  # Exit with code 1 for failure
+    while time.time() - start_time < 5 * 60:  # Run for 5 minutes
+        if not is_workflow_running():
+            print("Workflow is not running. Attempting to trigger...")
+            trigger_workflow()
+            workflow_triggered = True
+            time.sleep(30)  # Wait before checking again
+        else:
+            print("Workflow is already running.")
+            workflow_triggered = True
+            time.sleep(30)  # Wait before checking again
+
+    if not workflow_triggered:
+        print("No action was taken during this cycle.")
+    
+    print("Going to sleep for 6 hours...")
+    time.sleep(6 * 60 * 60)  # Sleep for 6 hours
+
+    # Check if the workflow was triggered successfully
+    if workflow_triggered:
+        print("Workflow triggered successfully!")
+        sys.exit(0)  # Exit with code 0 for success
+    else:
+        print("Failed to trigger workflow.")
+        sys.exit(1)  # Exit with code 1 for failure
