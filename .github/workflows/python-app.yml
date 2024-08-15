@@ -10,6 +10,7 @@ on:
 jobs:
   trigger-workflow-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # Cancel the job if it runs for more than 5 minutes
 
     steps:
     - name: Checkout code
@@ -18,7 +19,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'  # Specify your Python version
+        python-version: '3.10'
 
     - name: Install dependencies
       run: pip install -r requirements.txt
@@ -31,10 +32,10 @@ jobs:
         WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
       run: |
         python Main.py
-      continue-on-error: true  # Continue the job even if the script fails
+      continue-on-error: false  # Fail the job if the script fails
 
     - name: Check if workflow was triggered
-      if: success() && steps.trigger-workflow-check.outputs.status == 'success'
+      if: success()
       run: |
         echo "Workflow was triggered successfully. Stopping the job."
         exit 0  # Exit with code 0 to stop the workflow
