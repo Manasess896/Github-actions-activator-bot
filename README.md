@@ -13,13 +13,15 @@ Upon activation after 6 hours The bot runs 5 minutes after it has been activated
   + The yml file name of the Repository you wish to automate its github actions
 
 save the secrets using the following format in order for them to be properly acceessed by the yml and main.py files 
-        -"TOKEN" (this is your token from github)
-         -"REPO_OWNER" (this is the username of the owner of the repo you wish to automate github actions )
-          -"REPO_NAME" (this is the name of the repository you wish to automate its github workflow)
-          -"WORKFLOW_ID" (this is the name of your workflow or yml file e.g 'python-app.yml')
+
+ -"TOKEN" (this is your token from github)
+ -"REPO_OWNER" (this is the username of the owner of the repo you wish to automate github actions )
+ -"REPO_NAME" (this is the name of the repository you wish to automate its github workflow)
+ -"WORKFLOW_ID" (this is the name of your workflow or yml file e.g 'python-app.yml')
 
    If you dont understand this instructions i have created a .env file above use the same format to input your github secrets for this code 
    for testing purposes o have creted a repository you can clone and use it to see if its workflow will be automatically be started or renewed here it is https://github.com/Manasess896/Test.main
    if you encounter any problems feel free to ask for help https://wa.me/+254114471302
-         HAPPY CODING
+   
+   HAPPY CODING
      
