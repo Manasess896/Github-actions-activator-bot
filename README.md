@@ -23,7 +23,12 @@ save the secrets using the following format in order for them to be properly acc
 
    
    for testing purposes o have creted a repository you can clone and use it to see if its workflow will be automatically be started or renewed here it is https://github.com/Manasess896/Test.main
+   
    if you encounter any problems feel free to ask for help https://wa.me/+254114471302
+
+
+   If the code has problems or it isn't working please tell am   also open to recommendations .
+
    
    HAPPY CODING
      
