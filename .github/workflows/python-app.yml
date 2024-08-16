@@ -10,7 +10,7 @@ on:
 jobs:
   trigger-workflow-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # Cancel the job if it runs for more than 5 minutes
+    timeout-minutes: 60  # Increase the timeout to handle long-running jobs
 
     steps:
     - name: Checkout code
@@ -25,6 +25,7 @@ jobs:
       run: pip install -r requirements.txt
 
     - name: Run workflow trigger script
+      id: trigger
       env:
         TOKEN: ${{ secrets.TOKEN }}
         REPO_OWNER: ${{ secrets.REPO_OWNER }}
@@ -32,10 +33,30 @@ jobs:
         WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
       run: |
         python Main.py
-      continue-on-error: false  # Fail the job if the script fails
 
     - name: Check if workflow was triggered
-      if: success()
+      id: check
       run: |
-        echo "Workflow was triggered successfully. Stopping the job."
-        exit 0  # Exit with code 0 to stop the workflow.
+        # Set initial check interval and timeout
+        INTERVAL=10
+        MAX_ATTEMPTS=60
+        ATTEMPT=0
+
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          # Check workflow status
+          STATUS=$(curl -s -H "Authorization: token ${{ secrets.TOKEN }}" \
+            "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/runs?status=completed" | \
+            jq '.workflow_runs[] | select(.workflow_id == '${{ secrets.WORKFLOW_ID }}') | .status')
+
+          if [ "$STATUS" == "\"completed\"" ]; then
+            echo "Workflow was triggered successfully and completed."
+            exit 0
+          fi
+
+          echo "Workflow not completed yet. Checking again in $INTERVAL seconds."
+          sleep $INTERVAL
+          ATTEMPT=$((ATTEMPT+1))
+        done
+
+        echo "Workflow did not complete in time."
+        exit 1  # Exit with a non-zero code to indicate failure
