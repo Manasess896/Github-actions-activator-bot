@@ -38,4 +38,4 @@ jobs:
       if: success()
       run: |
         echo "Workflow was triggered successfully. Stopping the job."
-        exit 0  # Exit with code 0 to stop the workflow
+        exit 0  # Exit with code 0 to stop the workflow.
