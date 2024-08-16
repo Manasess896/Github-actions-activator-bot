@@ -1,7 +1,6 @@
 import requests
 import time
 import os
-import signal
 import sys
 
 # Fetch environment variables
@@ -28,15 +27,6 @@ headers = {
 data = {
     "ref": "main"  # The branch where the workflow should be triggered
 }
-
-# Function to handle the timeout
-def timeout_handler(signum, frame):
-    print("Operation timed out")
-    sys.exit(1)  # Exit with error code 1
-
-# Set the signal handler and a timeout of 5 minutes (300 seconds)
-signal.signal(signal.SIGALRM, timeout_handler)
-signal.alarm(300)  # Timeout after 300 seconds
 
 def is_workflow_running():
     try:
@@ -73,19 +63,12 @@ if __name__ == "__main__":
             print("Workflow is not running. Attempting to trigger...")
             trigger_workflow()
             workflow_triggered = True
-            time.sleep(30)  # Wait before checking again
+            break  # Exit the loop once the workflow is triggered
         else:
             print("Workflow is already running.")
             workflow_triggered = True
-            time.sleep(30)  # Wait before checking again
+            break  # Exit the loop if a workflow is running
 
-    if not workflow_triggered:
-        print("No action was taken during this cycle.")
-    
-    print("Going to sleep for 6 hours...")
-    time.sleep(6 * 60 * 60)  # Sleep for 6 hours
-
-    # Check if the workflow was triggered successfully
     if workflow_triggered:
         print("Workflow triggered successfully!")
         sys.exit(0)  # Exit with code 0 for success
