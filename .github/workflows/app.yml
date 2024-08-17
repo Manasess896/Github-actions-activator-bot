@@ -1,0 +1,78 @@
+name: Trigger and Monitor Workflow
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  trigger-workflow-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60  # Overall timeout for the job
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run workflow trigger script
+      id: trigger
+      env:
+        TOKEN: ${{ secrets.TOKEN }}
+        REPO_OWNER: ${{ secrets.REPO_OWNER }}
+        REPO_NAME: ${{ secrets.REPO_NAME }}
+        WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
+      run: |
+        python Main.py
+        if [ $? -eq 0 ]; then
+          echo "Workflow triggered successfully!"
+          echo "TRIGGERED=true" >> $GITHUB_ENV
+        else
+          echo "Failed to trigger workflow."
+          exit 1
+        fi
+
+    - name: Check if workflow was triggered
+      if: env.TRIGGERED == 'true'  # Skip this step if workflow was not triggered successfully
+      id: check
+      run: |
+        # Set initial check interval and timeout
+        INTERVAL=10
+        MAX_ATTEMPTS=60
+        ATTEMPT=0
+
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          # Check workflow status
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.TOKEN }}" \
+            "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/runs?status=completed")
+
+          # Print raw response for debugging
+          echo "Raw response: $RESPONSE"
+
+          # Extract the status
+          STATUS=$(echo "$RESPONSE" | jq --arg WORKFLOW_ID "${{ secrets.WORKFLOW_ID }}" \
+            '.workflow_runs[] | select(.workflow_id == ($WORKFLOW_ID|tonumber)) | .status')
+
+          # Print status for debugging
+          echo "Workflow status: $STATUS"
+
+          if [ "$STATUS" == "\"completed\"" ]; then
+            echo "Workflow was triggered successfully and completed."
+            exit 0
+          fi
+
+          echo "Workflow not completed yet. Checking again in $INTERVAL seconds."
+          sleep $INTERVAL
+          ATTEMPT=$((ATTEMPT+1))
+        done
+
+        echo "Workflow did not complete in time."
+        exit 1  # Exit with a non-zero code to indicate failure
