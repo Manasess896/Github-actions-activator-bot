@@ -1,4 +1,4 @@
-name: Trigger Workflow Check
+name: Trigger the workflow
 
 on:
   schedule:
@@ -44,9 +44,15 @@ jobs:
 
         while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
           # Check workflow status
-          STATUS=$(curl -s -H "Authorization: token ${{ secrets.TOKEN }}" \
-            "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/runs?status=completed" | \
-            jq --arg WORKFLOW_ID "${{ secrets.WORKFLOW_ID }}" '.workflow_runs[] | select(.workflow_id == ($WORKFLOW_ID|tonumber)) | .status')
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.TOKEN }}" \
+            "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/runs?status=completed")
+          
+          # Print raw response for debugging
+          echo "Raw response: $RESPONSE"
+
+          # Extract the status
+          STATUS=$(echo "$RESPONSE" | jq --arg WORKFLOW_ID "${{ secrets.WORKFLOW_ID }}" \
+            '.workflow_runs[] | select(.workflow_id == ($WORKFLOW_ID|tonumber)) | .status')
 
           if [ "$STATUS" == "\"completed\"" ]; then
             echo "Workflow was triggered successfully and completed."
