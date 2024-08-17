@@ -1,21 +1,15 @@
 name: Trigger the workflow
 
-
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-    #schedule:
-    #- cron: '0 0 * * *'  # Every day at 00:00 UTC
-    #- cron: '0 6 * * *'  # Every day at 06:00 UTC
-    #- cron: '0 12 * * *' # Every day at 12:00 UTC
-    #- cron: '0 18 * * *' # Every day at 18:00 UTC
 
 jobs:
   trigger-workflow-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # Increase the timeout to handle long-running jobs
+    timeout-minutes: 60
 
     steps:
     - name: Checkout code
@@ -29,6 +23,12 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
 
+    - name: List directory contents
+      run: ls -la
+
+    - name: Show Python version
+      run: python --version
+
     - name: Run workflow trigger script
       id: trigger
       env:
@@ -37,25 +37,22 @@ jobs:
         REPO_NAME: ${{ secrets.REPO_NAME }}
         WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
       run: |
+        echo "Starting Main.py"
         python Main.py
 
     - name: Check if workflow was triggered
       id: check
       run: |
-        # Set initial check interval and timeout
         INTERVAL=10
         MAX_ATTEMPTS=60
         ATTEMPT=0
 
         while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-          # Check workflow status
           RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.TOKEN }}" \
             "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/runs?status=completed")
-          
-          # Print raw response for debugging
+
           echo "Raw response: $RESPONSE"
 
-          # Extract the status
           STATUS=$(echo "$RESPONSE" | jq --arg WORKFLOW_ID "${{ secrets.WORKFLOW_ID }}" \
             '.workflow_runs[] | select(.workflow_id == ($WORKFLOW_ID|tonumber)) | .status')
 
@@ -70,4 +67,4 @@ jobs:
         done
 
         echo "Workflow did not complete in time."
-        exit 1  # Exit with a non-zero code to indicate failure
+        exit 1
