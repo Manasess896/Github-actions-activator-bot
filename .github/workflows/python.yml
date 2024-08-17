@@ -1,0 +1,42 @@
+name: Trigger Workflow and Complete Job
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  trigger-workflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # Overall timeout for this job
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run workflow trigger script
+      run: |
+        python Main.py
+        if [ $? -eq 0 ]; then
+          echo "Workflow triggered successfully!"
+        else:
+          echo "Failed to trigger workflow."
+          exit 1
+
+  complete-job:
+    runs-on: ubuntu-latest
+    needs: trigger-workflow
+    steps:
+    - name: Complete Job
+      run: |
+        echo "Trigger was successful. Completing the job."
+        exit 0  # Shut down the job cleanly
