@@ -48,9 +48,9 @@ jobs:
     - name: Complete Job
       run: |
         echo "Trigger was successful. Completing the job."
-        exit 0  # Exit with code 0 to mark the job as successful
+        # Optionally perform any final steps here, if needed
+        exit 0  # Shut down the job cleanly
 
-  # Optional: Handle failure if trigger fails
   handle-failure:
     runs-on: ubuntu-latest
     needs: trigger-workflow
