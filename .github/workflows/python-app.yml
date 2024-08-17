@@ -24,7 +24,6 @@ jobs:
       run: pip install -r requirements.txt
 
     - name: Run workflow trigger script
-      id: trigger
       env:
         TOKEN: ${{ secrets.TOKEN }}
         REPO_OWNER: ${{ secrets.REPO_OWNER }}
@@ -34,29 +33,7 @@ jobs:
         python Main.py
         if [ $? -eq 0 ]; then
           echo "Workflow triggered successfully!"
-          echo "TRIGGERED=true" >> $GITHUB_ENV
-        else
+          exit 0  # Exit cleanly if successful
+        else:
           echo "Failed to trigger workflow."
-          exit 1
-        fi
-
-  complete-job:
-    runs-on: ubuntu-latest
-    needs: trigger-workflow
-    if: env.TRIGGERED == 'true'
-    steps:
-    - name: Complete Job
-      run: |
-        echo "Trigger was successful. Completing the job."
-        exit 0  # Exit with code 0 to mark the job as successful
-
-  # Optional: Handle failure if trigger fails
-  handle-failure:
-    runs-on: ubuntu-latest
-    needs: trigger-workflow
-    if: env.TRIGGERED != 'true'
-    steps:
-    - name: Handle Failure
-      run: |
-        echo "Trigger failed. Taking necessary actions."
-        exit 1  # Exit with code 1 to indicate failure
+          exit 1  # Exit with an error code if it fails
