@@ -40,7 +40,7 @@ jobs:
         curl -X POST "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/enable" \
           -H "Authorization: token ${{ secrets.TOKEN }}"
 
-  wait-and-trigger:
+  wait-for-activation:
     needs: activate-repo
     runs-on: ubuntu-latest
     if: needs.activate-repo.result == 'success' || needs.check-repo-status.outputs.repo-active == 'true'
@@ -74,19 +74,30 @@ jobs:
           exit 1
         fi
 
-    - name: Trigger Workflow
-      id: trigger
-      if: steps.wait.outcome == 'success'
+  run-main-script:
+    needs: wait-for-activation
+    runs-on: ubuntu-latest
+    if: needs.wait-for-activation.result == 'success'
+    
+    steps:
+    - name: Run main.py
+      id: run-script
       run: |
-        echo "Triggering workflow..."
-        curl -X POST -H "Authorization: token ${{ secrets.TOKEN }}" \
-          "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/workflows/${{ secrets.WORKFLOW_ID }}/dispatches" \
-          -d '{"ref":"main"}'
+        echo "Running main.py to trigger the repository..."
+        python Main.py
+        # Check for success or failure of main.py
+        if [ $? -eq 0 ]; then
+          echo "main.py triggered the workflow successfully."
+          echo "::set-output name=triggered::true"
+        else
+          echo "main.py failed to trigger the workflow."
+          echo "::set-output name=triggered::false"
+        fi
 
   close-down:
-    needs: [wait-and-trigger]
+    needs: run-main-script
     runs-on: ubuntu-latest
-    if: needs.wait-and-trigger.result == 'success'
+    if: needs.run-main-script.outputs.triggered == 'true'
     
     steps:
     - name: Close Down
