@@ -55,23 +55,19 @@ def trigger_workflow():
         print(f"Error triggering workflow: {e}")
 
 if __name__ == "__main__":
-    workflow_triggered = False
     start_time = time.time()
+    timeout = 30 * 60  # 30 minutes
 
-    while time.time() - start_time < 5 * 60:  # Run for 5 minutes
+    while time.time() - start_time < timeout:
         if not is_workflow_running():
             print("Workflow is not running. Attempting to trigger...")
             trigger_workflow()
-            workflow_triggered = True
-            break  # Exit the loop once the workflow is triggered
+            print("Workflow triggered successfully!")
+            sys.exit(0)  # Exit with code 0 for success
         else:
-            print("Workflow is already running.")
-            workflow_triggered = True
-            break  # Exit the loop if a workflow is running
+            print("Workflow is already running. Retrying in 10 seconds...")
+            time.sleep(10)
 
-    if workflow_triggered:
-        print("Workflow triggered successfully!")
-        sys.exit(0)  # Exit with code 0 for success
-    else:
-        print("Failed to trigger workflow.")
-        sys.exit(1)  # Exit with code 1 for failure
+    # If the loop exits after the timeout
+    print("Failed to trigger workflow within the timeout period.")
+    sys.exit(1)  # Exit with code 1 for failure
