@@ -1,4 +1,4 @@
-name: Check and Activate Repository
+name: Trigger and Monitor Workflow
 
 on:
   push:
@@ -7,99 +7,63 @@ on:
   workflow_dispatch:
 
 jobs:
-  check-repo-status:
+  trigger-workflow-check:
     runs-on: ubuntu-latest
-    outputs:
-      repo-active: ${{ steps.check.outputs.repo-active }}
-    
+    timeout-minutes: 60  # Set the overall timeout to handle long-running jobs
+
     steps:
-    - name: Check Repository Status
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run workflow trigger script
+      id: trigger
+      env:
+        TOKEN: ${{ secrets.TOKEN }}
+        REPO_OWNER: ${{ secrets.REPO_OWNER }}
+        REPO_NAME: ${{ secrets.REPO_NAME }}
+        WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
+      run: |
+        python Main.py
+      continue-on-error: false  # Fail the job if the script fails
+
+    - name: Check if workflow was triggered
+      if: success()  # Only run if previous steps are successful
       id: check
       run: |
-        # Replace with your actual API call or status check command
-        REPO_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}")
-        
-        if [ "$REPO_STATUS" -eq 200 ]; then
-          echo "Repository is active."
-          echo "::set-output name=repo-active::true"
-        else
-          echo "Repository is off."
-          echo "::set-output name=repo-active::false"
-        fi
-
-  activate-repo:
-    needs: check-repo-status
-    runs-on: ubuntu-latest
-    if: needs.check-repo-status.outputs.repo-active == 'false'
-    
-    steps:
-    - name: Activate Repository
-      run: |
-        echo "Activating repository..."
-        # Replace with your actual activation command
-        curl -X POST "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/enable" \
-          -H "Authorization: token ${{ secrets.TOKEN }}"
-
-  wait-for-activation:
-    needs: activate-repo
-    runs-on: ubuntu-latest
-    if: needs.activate-repo.result == 'success' || needs.check-repo-status.outputs.repo-active == 'true'
-    
-    steps:
-    - name: Wait for Repository Activation
-      id: wait
-      run: |
+        # Set initial check interval and timeout
         INTERVAL=10
-        TIMEOUT=1800  # 30 minutes
-        ELAPSED=0
-        REPO_ACTIVE=false
+        MAX_ATTEMPTS=60
+        ATTEMPT=0
 
-        while [ $ELAPSED -lt $TIMEOUT ]; do
-          REPO_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}")
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          # Check workflow status
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.TOKEN }}" \
+            "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/runs?status=completed")
 
-          if [ "$REPO_STATUS" -eq 200 ]; then
-            REPO_ACTIVE=true
-            break
+          # Print raw response for debugging
+          echo "Raw response: $RESPONSE"
+
+          # Extract the status
+          STATUS=$(echo "$RESPONSE" | jq --arg WORKFLOW_ID "${{ secrets.WORKFLOW_ID }}" \
+            '.workflow_runs[] | select(.workflow_id == ($WORKFLOW_ID|tonumber)) | .status')
+
+          if [ "$STATUS" == "\"completed\"" ]; then
+            echo "Workflow was triggered successfully and completed."
+            exit 0
           fi
 
-          echo "Repository is still off. Checking again in $INTERVAL seconds."
+          echo "Workflow not completed yet. Checking again in $INTERVAL seconds."
           sleep $INTERVAL
-          ELAPSED=$((ELAPSED + INTERVAL))
+          ATTEMPT=$((ATTEMPT+1))
         done
 
-        if [ "$REPO_ACTIVE" = true ]; then
-          echo "Repository activated."
-        else
-          echo "Repository did not activate in time."
-          exit 1
-        fi
-
-  run-main-script:
-    needs: wait-for-activation
-    runs-on: ubuntu-latest
-    if: needs.wait-for-activation.result == 'success'
-    
-    steps:
-    - name: Run main.py
-      id: run-script
-      run: |
-        echo "Running main.py to trigger the repository..."
-        python Main.py
-        # Check for success or failure of main.py
-        if [ $? -eq 0 ]; then
-          echo "main.py triggered the workflow successfully."
-          echo "::set-output name=triggered::true"
-        else
-          echo "main.py failed to trigger the workflow."
-          echo "::set-output name=triggered::false"
-        fi
-
-  close-down:
-    needs: run-main-script
-    runs-on: ubuntu-latest
-    if: needs.run-main-script.outputs.triggered == 'true'
-    
-    steps:
-    - name: Close Down
-      run: |
-        echo "Workflow triggered successfully. Closing down."
+        echo "Workflow did not complete in time."
+        exit 1  # Exit with a non-zero code to indicate failure
