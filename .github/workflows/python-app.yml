@@ -31,9 +31,4 @@ jobs:
         WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
       run: |
         python Main.py
-        if [ $? -eq 0 ]; then
-          echo "Workflow triggered successfully!"
-          exit 0  # Exit cleanly if successful
-        else:
-          echo "Failed to trigger workflow."
-          exit 1  # Exit with an error code if it fails
+        exit 0
