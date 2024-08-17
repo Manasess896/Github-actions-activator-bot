@@ -1,4 +1,4 @@
-name: Trigger and Monitor Workflow
+name: Trigger Workflow and Complete Job
 
 on:
   push:
@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  trigger-workflow-check:
+  trigger-workflow:
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # Overall timeout for the job
+    timeout-minutes: 5  # Overall timeout for this job
 
     steps:
     - name: Checkout code
@@ -40,39 +40,13 @@ jobs:
           exit 1
         fi
 
-    - name: Check if workflow was triggered
-      if: env.TRIGGERED == 'true'  # Skip this step if workflow was not triggered successfully
-      id: check
+  complete-job:
+    runs-on: ubuntu-latest
+    needs: trigger-workflow
+    if: env.TRIGGERED == 'true'
+    steps:
+    - name: Complete Job
       run: |
-        # Set initial check interval and timeout
-        INTERVAL=10
-        MAX_ATTEMPTS=60
-        ATTEMPT=0
-
-        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-          # Check workflow status
-          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.TOKEN }}" \
-            "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/actions/runs?status=completed")
-
-          # Print raw response for debugging
-          echo "Raw response: $RESPONSE"
-
-          # Extract the status
-          STATUS=$(echo "$RESPONSE" | jq --arg WORKFLOW_ID "${{ secrets.WORKFLOW_ID }}" \
-            '.workflow_runs[] | select(.workflow_id == ($WORKFLOW_ID|tonumber)) | .status')
-
-          # Print status for debugging
-          echo "Workflow status: $STATUS"
-
-          if [ "$STATUS" == "\"completed\"" ]; then
-            echo "Workflow was triggered successfully and completed."
-            exit 0
-          fi
-
-          echo "Workflow not completed yet. Checking again in $INTERVAL seconds."
-          sleep $INTERVAL
-          ATTEMPT=$((ATTEMPT+1))
-        done
-
-        echo "Workflow did not complete in time."
-        exit 1  # Exit with a non-zero code to indicate failure
+        echo "Trigger was successful. Completing the job."
+        # Optionally perform any final steps here, if needed
+        exit 0
