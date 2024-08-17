@@ -9,7 +9,7 @@ on:
 jobs:
   trigger-workflow:
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # Overall timeout for this job
+    timeout-minutes: 32 # Overall timeout for this job
 
     steps:
     - name: Checkout code
