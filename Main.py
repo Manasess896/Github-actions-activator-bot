@@ -56,7 +56,7 @@ def trigger_workflow():
 
 if __name__ == "__main__":
     start_time = time.time()
-    timeout = 30 * 60  # 30 minutes
+    timeout = 120 * 60  # 30 minutes
 
     while time.time() - start_time < timeout:
         if not is_workflow_running():
