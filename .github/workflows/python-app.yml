@@ -1,0 +1,34 @@
+name: Trigger Workflow Check
+
+# To activate, remove the comment hashes (#) below:
+# on:
+#   schedule:
+#     - cron: '0 0 * * *'
+#     - cron: '0 6 * * *'
+#     - cron: '0 12 * * *'
+#     - cron: '0 18 * * *'
+
+jobs:
+  trigger-workflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 123
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run workflow trigger script
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_OWNER: ${{ secrets.REPO_OWNER }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
+          WORKFLOW_ID: ${{ secrets.WORKFLOW_ID }}
+        run: python main.py
